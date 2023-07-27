@@ -1,6 +1,6 @@
 -- create database interview;
 use interview;
-
+drop table customer;
 
 CREATE TABLE IF NOT EXISTS `agents` (
   `AGENT_CODE` varchar(6) NOT NULL DEFAULT '',
@@ -153,6 +153,8 @@ SELECT table_name, table_schema, table_rows
 FROM information_schema.tables
 WHERE table_type = 'BASE TABLE' AND table_schema = 'interview';
 
+select count(*) from orders; 
+
 -- 3. Handling null values and missing values 
 -- In agents
 SELECT *
@@ -170,6 +172,7 @@ FROM orders
 WHERE NULL IN(ORD_NUM, ORD_AMOUNT, ADVANCE_AMOUNT, ORD_DATE, CUST_CODE, AGENT_CODE, ORD_DESCRIPTION)
 
 -- no null or missing values found
+
 -- 4.Analyse the data types of the columns in each table to ensure they are appropriate for the stored data
 
 DESCRIBE agents;
@@ -178,9 +181,9 @@ DESCRIBE Orders;
 
 
 -- 5.To find if there is duplicate record
-select cust_name,cust_city,count(*) from customer
-group by cust_name, cust_city
-having count(*)>1;
+SELECT cust_name,cust_city,count(*) FROM customer
+GROUP BY cust_name, cust_city
+HAVING count(*)>1;
 
 -- no duplicate records found
 
@@ -195,112 +198,144 @@ SELECT
     AVG(ORD_AMOUNT) AS AverageOrderValue
 FROM orders;
 
--- 2.The operations team needs to track the agent who has handled the maximum number of high-grade customers. Write a
+--  2.The operations team needs to track the agent who has handled the maximum number of high-grade customers. Write a
 --  SQL query to find the agent_name who has the highest count of customers with a grade of 5. Display the agent_name and the count of high-grade customers
 
 
-SELECT A.agent_name, SUM(C.grade) AS grades
-FROM customer C
-INNER JOIN agents A ON A.agent_code = C.agent_code
-GROUP BY A.agent_code, A.agent_name
-HAVING SUM(C.grade) > 5;
+-- SELECT A.agent_name, count(C.grade) AS grades
+-- FROM customer C
+-- INNER JOIN agents A ON A.agent_code = C.agent_code
+-- GROUP BY A.agent_code, A.agent_name
+-- HAVING  C.grade  = 5;
+-- select*from customer;
+
+SELECT AGENT_NAME,COUNT(*) AS cnt
+FROM agents JOIN customer ON agents.AGENT_CODE = customer.AGENT_CODE
+WHERE customer.GRADE = 5
+GROUP BY AGENT_NAME
+ORDER BY cnt DESC
+;
+
+
+
+
 
 select * from customer;
-
+select* from agents;
 -- 3.The company wants to identify the most active customer cities in terms of the total order amount. 
 --  Write a SQL query to find the top 3 customer cities with the highest total order amount. Include cust_city and total_order_amount in the output.
 
-SELECT C.cust_city, sum(o.ord_amount) AS total 
-FROM customer c 
-INNER JOIN orders o ON o.cust_code = c.cust_code 
-GROUP BY cust_city ORDER BY  total DESC 
-LIMIT 3;
-
---                                                          SEGMENT 3
+-- SELECT CUST_CITY, sum(o.ORD_AMOUNT) AS TOTAL
+-- FROM customer c 
+-- INNER JOIN orders o ON o.cust_code = c.cust_code 
+-- GROUP BY cust_city ORDER BY  total DESC 
+-- LIMIT 3; 
+SELECT cust_city,total_order_amount
+FROM(SELECT c.CUST_CITY AS cust_city,
+        SUM(o.ORD_AMOUNT) AS total_order_amount,
+        RANK() OVER (ORDER BY SUM(o.ORD_AMOUNT) DESC) AS city_rank
+FROM customer c
+INNER JOIN orders o ON c.CUST_CODE = o.CUST_CODE GROUP BY c.CUST_CITY) ranked_cities WHERE city_rank <= 3;
+    
+--                                                       SEGMENT 3
 --  1.Customer Analysis
 --  Calculate the total number of customers.
 
 SELECT COUNT(cust_code) AS total_customers FROM customer;
 
 -- 2.Identify the top-spending customers based on their total order value.
-SELECT c.cust_name,SUM(ord_amount) AS total 
-FROM customer c INNER JOIN orders o ON o.cust_code = c.cust_code 
-GROUP BY cust_name 
-ORDER BY total DESC;
+-- SELECT c.cust_name,SUM(ord_amount) AS total 
+-- FROM customer c INNER JOIN orders o ON o.cust_code = c.cust_code 
+-- GROUP BY cust_name 
+-- ORDER BY total DESC;
+
+SELECT CUST_NAME,total_order_amount
+FROM (SELECT c.CUST_NAME,
+        SUM(o.ORD_AMOUNT) AS total_order_amount,
+        DENSE_RANK() OVER (ORDER BY SUM(o.ORD_AMOUNT) DESC) AS customer_dense_rank
+	FROM customer c
+    INNER JOIN orders o ON c.CUST_CODE = o.CUST_CODE
+    GROUP BY c.CUST_NAME) ranked_customer WHERE
+    customer_dense_rank <= 3;
+
 
 -- 3.Analyse customer retention by calculating the percentage of repeat customers.
 SELECT * FROM orders;
-SELECT COUNT(cust_code) AS cnt 
-FROM orders GROUP BY  cust_code HAVING cnt >1 ;  
+select count(CUST_CODE) from orders
+;
+
+SELECT 
+    COUNT( Distinct CASE WHEN ORDER_COUNT > 1 THEN CUST_CODE END) AS REPEAT_CUSTOMERS,
+    COUNT(CUST_CODE) AS TOTAL_CUSTOMERS,
+    (COUNT( distinct CASE WHEN ORDER_COUNT > 1 THEN CUST_CODE END) / COUNT(CUST_CODE)) * 100 AS RETENTION_PERCENTAGE
+FROM
+    (SELECT CUST_CODE, COUNT(ORD_NUM) AS ORDER_COUNT
+     FROM ORDERS
+     GROUP BY CUST_CODE) AS CUSTOMER_ORDER_COUNTS;
+
+
 
 -- 4.Find the name of the customer who has the maximum outstanding amount from every country
-SELECT cust_name, cust_country, MAX(outstanding_amt) AS maxamt 
-FROM customer 
-GROUP BY cust_name, cust_country 
-ORDER BY  maxamt DESC;
+SELECT CUST_NAME, CUST_COUNTRY, MAX(OUTSTANDING_AMT) AS MAXAMT 
+FROM CUSTOMER 
+GROUP BY CUST_NAME, CUST_COUNTRY 
+ORDER BY  MAXAMT DESC;
+SELECT * FROM CUSTOMER;
 
 --                                                     SEGMENT 4
 --  1.Agent Performance Analysis
 -- 	Company wants to provide a performance bonus to their best agents based on the maximum order amount. Find the top 5 agents eligible for it. 
-SELECT A.agent_name,sum(ord_amount) AS ord 
-FROM orders o 
-INNER JOIN Agents a ON a.agent_code = o.agent_code 
-GROUP BY agent_name 
-ORDER BY ord DESC 
+SELECT A.AGENT_NAME,sum(ORD_AMOUNT) AS ORD
+FROM ORDERS O
+INNER JOIN AGENTS A ON A.AGENT_CODE = O.AGENT_CODE 
+GROUP BY AGENT_NAME 
+ORDER BY ORD DESC 
 LIMIT 5; 
 
 -- 2.The company wants to analyse the performance of agents based on the number of orders they have handled. 
 -- Write a SQL query to rank agents based on the total number of orders they have processed. Display agent_name, total_orders, and their respective ranking.
 
-SELECT agent_name, total_orders, RANK() OVER (ORDER BY total_orders DESC) AS rnk
+SELECT AGENT_NAME, TOTAL_ORDERS, RANK() OVER (ORDER BY TOTAL_ORDERS DESC) AS RNK
 FROM (
-  SELECT A.agent_name, COUNT(o.ord_num) AS total_orders
-  FROM orders o
-  INNER JOIN agents A ON o.agent_code = A.agent_code
-  GROUP BY A.agent_name
-) AS x;
+  SELECT A.AGENT_NAME, COUNT(O.ORD_NUM) AS TOTAL_ORDERS
+  FROM ORDERS O
+  INNER JOIN AGENTS A ON o.AGENT_CODE = A.AGENT_CODE
+  GROUP BY A.AGENT_NAME
+) AS X;
 
 -- 	4.Company wants to change the commission for the agents, basis advance payment they collected. Write a sql query which creates a new column updated_commision on the basis below rules.
 -- 	If the average advance amount collected is less than 750, there is no change in commission.
 -- 	If the average advance amount collected is between 750 and 1000 (inclusive), the new commission will be 1.5 times the old commission.
 -- 	If the average advance amount collected is more than 1000, the new commission will be 2 times the old commission.
  
-SELECT * FROM agents INNER JOIN  
-(SELECT agent_code, AVG(advance_amount) AS average 
-FROM  orders 
-GROUP BY agent_code) x ON  x.agent_code = agents.agent_code  ;  
-
- ALTER TABLE agents
-ADD updated_commission DECIMAL(10, 2);
-
-UPDATE agents
-SET updated_commission = CASE
-    WHEN (SELECT AVG(ADVANCE_AMOUNT) FROM orders WHERE AGENT_CODE = agents.AGENT_CODE) < 750 THEN COMMISSION
-    WHEN (SELECT AVG(ADVANCE_AMOUNT) FROM orders WHERE AGENT_CODE = agents.AGENT_CODE) BETWEEN 750 AND 1000 THEN COMMISSION * 1.5
-    ELSE COMMISSION * 2
-    END;
-    
-select * from agents
+SELECT 
+    a.*,
+    CASE 
+        WHEN avg_advance_amount < 750 THEN a.COMMISSION
+        WHEN avg_advance_amount BETWEEN 750 AND 1000 THEN a.COMMISSION * 1.5
+        WHEN avg_advance_amount > 1000 THEN a.COMMISSION * 2
+    END AS updated_commision
+FROM agents a
+JOIN (SELECT AGENT_CODE, 
+        AVG(ADVANCE_AMOUNT) AS avg_advance_amount FROM orders
+     GROUP BY 
+	AGENT_CODE
+	) o ON a.AGENT_CODE = o.AGENT_CODE;
 
 --                                                            SEGMENT 5
 --  1.SQL Tasks
 -- Add a new column named avg_rcv_amt in the table customers which contains the average receive amount for every country. 
--- --  Display all columns from the customer table along with the avg_rcv_amt column in the 
+--  Display all columns from the customer table along with the avg_rcv_amt column in the last.
 
-ALTER TABLE customer
-ADD COLUMN avg_rcv_amt DECIMAL(10, 2);
 
-UPDATE customer AS c
-JOIN (
-  SELECT cust_country, AVG(receive_amt) AS avg_receive_amt
-  FROM customer
-  GROUP BY cust_country
-) AS avg_table ON c.cust_country = avg_table.cust_country
-SET c.avg_rcv_amt = avg_table.avg_receive_amt;
--- Dispalying the 
+SELECT c.*, round((avg_amt.avg_rcv_amt),2) AS avg_rcv_amt
+FROM customer C JOIN 
+        (SELECT CUST_COUNTRY,
+        AVG(RECEIVE_AMT) AS avg_rcv_amt
+        FROM customer C GROUP BY CUST_COUNTRY) avg_amt ON c.CUST_COUNTRY = avg_amt.CUST_COUNTRY;
 
-SELECT *
-FROM customer;
+SELECT * FROM CUSTOMER;
+
 
 -- 	2. Write a stored procedure sp_name which will return the concatenated ord_num (comma separated) of the customer with input customer code using cursor. Also, write the procedure call query with cust_code ‘C00015’.
 -- Delimiter is used to change the default statement terminator (usually ';') to something else (e.g., $$).
@@ -368,6 +403,7 @@ DELIMITER ;
 
 -- Call the stored procedure with grade 2
 CALL cust_detail(2);
+
 
 
 
