@@ -202,13 +202,6 @@ FROM orders;
 --  SQL query to find the agent_name who has the highest count of customers with a grade of 5. Display the agent_name and the count of high-grade customers
 
 
--- SELECT A.agent_name, count(C.grade) AS grades
--- FROM customer C
--- INNER JOIN agents A ON A.agent_code = C.agent_code
--- GROUP BY A.agent_code, A.agent_name
--- HAVING  C.grade  = 5;
--- select*from customer;
-
 SELECT AGENT_NAME,COUNT(*) AS cnt
 FROM agents JOIN customer ON agents.AGENT_CODE = customer.AGENT_CODE
 WHERE customer.GRADE = 5
@@ -225,11 +218,6 @@ select* from agents;
 -- 3.The company wants to identify the most active customer cities in terms of the total order amount. 
 --  Write a SQL query to find the top 3 customer cities with the highest total order amount. Include cust_city and total_order_amount in the output.
 
--- SELECT CUST_CITY, sum(o.ORD_AMOUNT) AS TOTAL
--- FROM customer c 
--- INNER JOIN orders o ON o.cust_code = c.cust_code 
--- GROUP BY cust_city ORDER BY  total DESC 
--- LIMIT 3; 
 SELECT cust_city,total_order_amount
 FROM(SELECT c.CUST_CITY AS cust_city,
         SUM(o.ORD_AMOUNT) AS total_order_amount,
@@ -244,10 +232,6 @@ INNER JOIN orders o ON c.CUST_CODE = o.CUST_CODE GROUP BY c.CUST_CITY) ranked_ci
 SELECT COUNT(cust_code) AS total_customers FROM customer;
 
 -- 2.Identify the top-spending customers based on their total order value.
--- SELECT c.cust_name,SUM(ord_amount) AS total 
--- FROM customer c INNER JOIN orders o ON o.cust_code = c.cust_code 
--- GROUP BY cust_name 
--- ORDER BY total DESC;
 
 SELECT CUST_NAME,total_order_amount
 FROM (SELECT c.CUST_NAME,
