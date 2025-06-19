@@ -1,4 +1,4 @@
-# 🛒Retial and Support Agent Analysis using SQL
+# 🛒Retail and Support Agent Analysis using SQL
 
 Fliipazon Retail is a multinational company that operates a chain of retail stores across different regions. They sell a wide range of products and want to analyse their sales data to gain insights into their business performance and make informed decisions.
 ## 📌 Project Objective
